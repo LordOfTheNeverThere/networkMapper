@@ -6,12 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(networkMapperLib STATIC
         src/Map.cpp
+        src/Host.cpp
+        include/networkMapper/Host.h
 )
 add_subdirectory(../socks ${CMAKE_BINARY_DIR}/socks)
 target_link_libraries(networkMapperLib PRIVATE socks)
 
 
-add_executable(networkMapperDev src/main.cpp)
+add_executable(networkMapperDev src/main.cpp
+        src/main.cpp)
 target_link_libraries(networkMapperDev PRIVATE networkMapperLib)
 
 

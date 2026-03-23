@@ -8,8 +8,13 @@ add_library(networkMapperLib STATIC
         include/networkMapper/Mapper.h
         src/Mapper.cpp
         src/IPv4Range.cpp
+        include/networkMapper/Exceptions.h
+        include/networkMapper/IPv4Range.h
 )
 add_subdirectory(../socks ${CMAKE_BINARY_DIR}/socks)
+
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../socks/resources" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/../socks/resources" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tests")
 target_link_libraries(networkMapperLib PRIVATE socks)
 
 

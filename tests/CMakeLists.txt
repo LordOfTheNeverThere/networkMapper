@@ -1,4 +1,6 @@
-add_executable(networkMapperTests tests.cpp)
+add_executable(networkMapperTests tests.cpp
+        IPv4Range.cpp
+)
 
 target_link_libraries(networkMapperTests
         PRIVATE

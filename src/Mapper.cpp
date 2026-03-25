@@ -119,6 +119,7 @@ static void arpMappingReceiving(const RawSocket& socket, std::deque<std::array<u
 std::vector<ExternalInterface> Mapper::mapLocalNetwork(LocalHost& machine, const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap, RawSocket& socket) {
 
     socket.setSocketAsNonBlock();
+    socket.setSocketReceiveBuffer(1*1024*1024);
     std::vector<std::thread> senders{};
     senders.reserve(localIPsToMap.size());
     std::vector<ExternalInterface> neighbours{};

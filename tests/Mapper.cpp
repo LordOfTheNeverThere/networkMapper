@@ -28,10 +28,7 @@ TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
     Int numOfPacketsToSend {50};
     range.m_ipsRangeLocal["lo"].insert(range.m_ipsRangeLocal["lo"].begin() , range.m_ipsRangeLocal[interfaceWithGateway.getInterfaceName()].begin(), std::next(range.m_ipsRangeLocal[interfaceWithGateway.getInterfaceName()].begin(), numOfPacketsToSend));
 
-
     RawSocket socket {AF_PACKET, htons(ETH_P_ARP)};
-    Mapper mapper {AF_INET};
-
     std::string cmdOutput {};
     bool run {true};
     std::string cmd = "tcpdump -i lo -n ether host ff:ff:ff:ff:ff:ff -c" + std::to_string(numOfPacketsToSend);

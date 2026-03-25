@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include "../../socks/include/socks/LocalHost.h"
 #include "../../socks/include/socks/Exceptions.h"
+#include "../../cmake-build-debug/_deps/googletest-src/googletest/include/gtest/gtest_prod.h"
 
 
 class IPv4OnlyException : public ConfigException {
@@ -25,6 +26,7 @@ public:
 
 
 class IPv4Range {
+    FRIEND_TEST(MethodChecking, dualSenderMapLocalNetworkCheck);
     std::vector<uint32_t> m_ipsRangeNonLocal{};
     std::unordered_map<std::string, std::vector<uint32_t>> m_ipsRangeLocal{};
 

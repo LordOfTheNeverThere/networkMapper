@@ -31,10 +31,10 @@ IPv4Range::IPv4Range(const std::string& ip, const std::string& mask, const Local
         throw ConversionToIPBinaryException(mask);
     }
 
-    double minNetworkMask {255 * std::pow(2, 16) + 255 * std::pow(2, 24)};
-    if (ntohl(maskSockAddr.sin_addr.s_addr) < minNetworkMask) {
-        throw IPv4OutOfRangeException();
-    }
+    // double minNetworkMask {255 * std::pow(2, 16) + 255 * std::pow(2, 24)};
+    // if (ntohl(maskSockAddr.sin_addr.s_addr) < minNetworkMask) {
+    //     throw IPv4OutOfRangeException();
+    // }
 
     std::vector<uint32_t> ipsInRange {Tools::generateIPv4RangeHostEndiness(ipSockAddr.sin_addr.s_addr, maskSockAddr.sin_addr.s_addr)};
 

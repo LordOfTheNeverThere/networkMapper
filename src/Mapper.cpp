@@ -12,6 +12,11 @@
 #include "networkMapper/Mapper.h"
 
 #include <random>
+Mapper::Mapper(const sa_family_t ipVersion)
+: m_ipVersion{ipVersion} {}
+
+
+
 
 static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_t>& ips, const InternalInterface& interface) {
 
@@ -39,6 +44,7 @@ static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_
                 inet_ntop(AF_INET, &ips[i], ipString, INET_ADDRSTRLEN);
                 std::cerr << "Sending the ARP Echo request to " << ipString << " failed after " << std::to_string(MAX_RETRIES) << " times" << '\n'
                 << "Reason: " << std::system_category().message(errno) << '\n';
+                continue;
             }
             retries--;
             i--;
@@ -47,34 +53,43 @@ static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_
         std::this_thread::sleep_for(std::chrono::milliseconds(uni1To10(rng)));
     }
 }
+template <size_t N> //Variable packet size
+static void bufferHandler(std::deque<std::array<uint8_t, N>>& bufferVector,std::vector<ExternalInterface>& neighbours,
+    const bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar, const bool isARP) {
 
-static void arpMappingHandling(std::deque<std::array<uint8_t, ETH_FRAME_LEN>>& bufferVector,std::vector<ExternalInterface>& neighbours,
-    const bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar) {
 
     while (true) {
         std::unique_lock<std::mutex> lock(exclusioner);
         conditionVar.wait(lock, [&] {
-            return finished || !bufferVector.empty();
+            return finished || !bufferVector.empty(); // Protection against spurious wake-ups
         });
         if (bufferVector.empty()) {
             // Receiver has ceased receiving and no more data is waiting for handling
             //std::cout << "Receiver has ceased receiving and no more data is waiting for handling" << '\n';
             break;
         } else {
-            std::array<uint8_t, ETH_FRAME_LEN> packet {std::move(bufferVector.front())};// transfer ownership of the data
-            bufferVector.pop_front();// delete empty entry
+            std::deque<std::array<uint8_t, N>> localBuffer {std::move(bufferVector)};
+            bufferVector.clear();
             lock.unlock(); //Allow receiver to continue receiving
+            //std::cout << "Will add " << std::to_string(localBuffer.size()) << " new neighbours" << '\n';
+            while (!localBuffer.empty()) {
 
-            ExternalInterface neighbour {};
-            neighbour.populateFromARPEchoReply(packet.data());
-            neighbours.push_back(neighbour);
-            //std::cout << "Received Data From " << neighbour.getIPAddress() << '\n';
+                std::array<uint8_t, N> packet {std::move(localBuffer.front())};// transfer ownership of the data
+                localBuffer.pop_front();// delete empty entry
+                ExternalInterface neighbour {};
+                if (isARP) {
+                    neighbour.populateFromARPEchoReply(packet.data());
+                } else {
+                    neighbour.populateFromICMPEchoReply(packet.data());
+                }
+                neighbours.push_back(neighbour);
+            }
         }
     }
 }
-
-static void arpMappingReceiving(const RawSocket& socket, std::deque<std::array<uint8_t, ETH_FRAME_LEN>>& bufferVector,
-    bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar) {
+template <size_t N> //Variable packet size
+static void receiving(const RawSocket& socket, std::deque<std::array<uint8_t, N>>& bufferVector,
+    bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar,  const bool isARP) {
     Int epollFD = epoll_create1(0);
     if (epollFD == -1) {
         throw EpollCreationException();
@@ -98,11 +113,26 @@ static void arpMappingReceiving(const RawSocket& socket, std::deque<std::array<u
                 conditionVar.notify_one();
                 return;
             }  if (ev.data.fd == socket.m_socket && ev.events & EPOLLIN){
-                std::array<uint8_t, ETH_FRAME_LEN> recvBuffer {};
-                uint64_t numBytesRecv = socket.receiveArpEchoReply(recvBuffer.data());
-                if (numBytesRecv == 0) {
-                    continue; //EWOULDBLOCK or EAGAIN
+                std::array<uint8_t, N> recvBuffer {};
+                uint64_t numBytesRecv {};
+                try{
+                    if (isARP) {
+                        numBytesRecv = socket.receiveArpEchoReply(recvBuffer.data());
+                    } else {
+                        numBytesRecv = socket.receivePing(recvBuffer.data());
+                    }
+                } catch (std::exception& e) {
+
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        continue; //EWOULDBLOCK or EAGAIN, kernel dropped the packet for some reason, such as CRC corruption
+                    } else {
+                        std::cerr << e.what() << '\n';
+                    }
                 }
+                if (numBytesRecv == 0) {
+                    continue; //Rare: Client Closed connection or empty packet
+                }
+
                 std::unique_lock<std::mutex> lock(exclusioner);
                 bufferVector.push_back(recvBuffer);
                 lock.unlock();
@@ -112,7 +142,7 @@ static void arpMappingReceiving(const RawSocket& socket, std::deque<std::array<u
         }
     } catch (std::runtime_error& e) {
         close(epollFD); // in case an exception occurs we can close what we need
-        throw e;
+        throw;
     }
 }
 
@@ -141,10 +171,10 @@ std::vector<ExternalInterface> Mapper::mapLocalNetwork(LocalHost& machine, const
         senders.push_back(std::move(newThread));
     }
 
-    std::thread receiver(arpMappingReceiving, std::cref(socket), std::ref(bufferVector),
-        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar));
-    std::thread handler(arpMappingHandling, std::ref(bufferVector), std::ref(neighbours),
-        std::cref(finished), std::ref(exclusioner), std::ref(conditionVar));
+    std::thread receiver(receiving<ETH_FRAME_LEN>, std::cref(socket), std::ref(bufferVector),
+        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), true);
+    std::thread handler(bufferHandler<ETH_FRAME_LEN>, std::ref(bufferVector), std::ref(neighbours),
+        std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), true);
 
     for (std::thread& sender: senders) {
         sender.join();
@@ -156,9 +186,63 @@ std::vector<ExternalInterface> Mapper::mapLocalNetwork(LocalHost& machine, const
 }
 
 
-Mapper::Mapper(const sa_family_t ipVersion)
-: m_ipVersion{ipVersion} {}
 
+static void pingMappingSending(RawSocket& socket, const std::vector<uint32_t>& ips) {
+
+
+    Int retries {MAX_RETRIES};
+    for (Int i = 0; i < ips.size(); ++i) {
+        try {
+             // char ipString[INET_ADDRSTRLEN] {};
+             // inet_ntop(AF_INET, &ips[i], ipString, INET_ADDRSTRLEN);
+             // std::cout << "Sending ICMP Echo Request to " << ipString << '\n';
+            socket.sendPingIPv4Only(ips[i]);
+            retries = 5;
+        } catch (SendingException& se) {
+            if (retries == 0) {
+                char ipString[INET_ADDRSTRLEN] {};
+                inet_ntop(AF_INET, &ips[i], ipString, INET_ADDRSTRLEN);
+                std::cerr << "Sending the ICMP Echo request to " << ipString << " failed after " << std::to_string(MAX_RETRIES) << " times" << '\n'
+                << "Reason: " << std::system_category().message(errno) << '\n';
+                continue;
+            }
+            retries--;
+            i--;
+            std::this_thread::sleep_for(std::chrono::milliseconds(PING_SEND_BATCH_SLEEP_MS)); // Add more waiting time in case the socket is presently occupied
+        }
+        if (i % PING_SEND_BATCH_SIZE == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(PING_SEND_BATCH_SLEEP_MS));
+        }
+    }
+}
+
+std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap, RawSocket& socket) {
+
+    socket.setSocketAsNonBlock();
+    socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
+    uint64_t buff {socket.getSocketRcvBuffer()};
+    std::vector<ExternalInterface> neighbours{};
+    bool finished = false;
+    std::deque<std::array<uint8_t, IP_MAXPACKET>> bufferVector {};
+    std::mutex exclusioner {};
+    std::condition_variable conditionVar {};
+
+    std::thread sender(
+           pingMappingSending,
+           std::ref(socket),
+           std::cref(nonLocalIPsToMap));
+
+    std::thread receiver(receiving<IP_MAXPACKET>, std::cref(socket), std::ref(bufferVector),
+        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
+    std::thread handler(bufferHandler<IP_MAXPACKET>, std::ref(bufferVector), std::ref(neighbours),
+        std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
+
+    sender.join();
+    receiver.join();
+    handler.join();
+
+    return neighbours;
+}
 
 void Mapper::getTraceRoute(const std::string& destIPAddr, const Int& hops) {
 

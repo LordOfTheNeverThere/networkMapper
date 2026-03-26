@@ -41,3 +41,17 @@ TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
     std::string::difference_type numOfLines = std::count(cmdOutput.begin(), cmdOutput.end(), '\n');
     EXPECT_EQ(numOfLines, numOfPacketsToSend);
 }
+
+
+TEST(MethodChecking, simpleMapNonLocalNetwork) {
+    LocalHost myMachine {LocalHost(true)};
+
+
+    IPv4Range range {IPv4Range("127.0.0.0", "255.0.0.0", myMachine)};
+    range.m_ipsRangeNonLocal.insert(range.m_ipsRangeNonLocal.begin(), range.m_ipsRangeLocal["lo"].begin(), range.m_ipsRangeLocal["lo"].end());
+    RawSocket socket {AF_INET, IPPROTO_ICMP};
+    Mapper mapper {AF_INET};
+    auto result = Mapper::mapNonLocalNetwork(range.getIPsNonLocal(), socket);
+    EXPECT_EQ(0, socket.getSocketOverflowDrops());
+    EXPECT_EQ(result.size(), range.getIPsNonLocal().size());
+}

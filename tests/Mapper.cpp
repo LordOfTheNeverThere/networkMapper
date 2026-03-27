@@ -18,7 +18,7 @@ TEST(MethodChecking, simpleMapLocalNetworkCheck) {
 }
 
 
-/*
+
 TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
 
     LocalHost myMachine {LocalHost(true)};
@@ -31,13 +31,12 @@ TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
     inet_pton(AF_INET, networkMask.c_str(), &networkMaskInBytes);
     uint32_t numOfPacketsToSend {Tools::getNumberOfIPsInMaskIPv4(networkMaskInBytes)};
 
-    RawSocket socket {AF_PACKET, htons(ETH_P_ARP)};
     std::string cmdOutput {};
     bool run {true};
     std::string cmd = "tcpdump -i lo -n ether host ff:ff:ff:ff:ff:ff -c" + std::to_string(numOfPacketsToSend);
     std::thread worker(Tools::getOutputFromCommand, std::ref(cmdOutput), std::cref(cmd), std::ref(run));
     std::this_thread::sleep_for(std::chrono::seconds(5)); // so that worker has time to initiate the packet tracer
-    auto result = Mapper::mapLocalNetwork(range.getIPsLocal(),myMachine, socket);
+    auto result = Mapper::mapLocalNetwork(range.getIPsLocal(),myMachine);
     run = false;
     worker.join();
 
@@ -45,16 +44,10 @@ TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
     EXPECT_EQ(numOfLines, numOfPacketsToSend);
 }
 
-
 TEST(MethodChecking, checkIfAlgoHandlesAllReplies) {
     LocalHost myMachine {LocalHost(true)};
-
-
     IPv4Range range {IPv4Range("127.0.0.0", "255.255.0.0", myMachine)};
-    range.m_ipsRangeNonLocal.insert(range.m_ipsRangeNonLocal.begin(), range.m_ipsRangeLocal["lo"].begin(), range.m_ipsRangeLocal["lo"].end());
-    RawSocket socket {AF_INET, IPPROTO_ICMP};
     Mapper mapper {AF_INET};
-    auto result = Mapper::mapNonLocalNetwork(range.getIPsNonLocal(), socket);
-    EXPECT_EQ(0, socket.getSocketOverflowDrops());
+    auto result = Mapper::mapNonLocalNetwork(range.getIPsNonLocal());
     EXPECT_EQ(result.size(), range.getIPsNonLocal().size());
-}*/
+}

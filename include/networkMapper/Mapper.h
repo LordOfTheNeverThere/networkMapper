@@ -15,7 +15,7 @@ public:
     static std::vector<ExternalInterface> mapLocalNetwork(const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap,
         const LocalHost& machine = LocalHost(true));
 
-    static std::vector<ExternalInterface> mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap, RawSocket& socket);
+    static std::vector<ExternalInterface> mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap);
 
     Mapper(const sa_family_t ipVersion);
     void getTraceRoute(const std::string& destIPAddr, const Int& hops = 64);

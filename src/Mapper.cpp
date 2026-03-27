@@ -218,8 +218,9 @@ static void pingMappingSending(RawSocket& socket, const std::vector<uint32_t>& i
     }
 }
 
-std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap, RawSocket& socket) {
+std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap) {
 
+    RawSocket socket {AF_INET, IPPROTO_ICMP};
     socket.setSocketAsNonBlock();
     socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
     uint64_t buff {socket.getSocketRcvBuffer()};

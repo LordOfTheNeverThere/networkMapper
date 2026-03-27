@@ -149,7 +149,7 @@ static void receiving(const RawSocket& socket, std::deque<std::array<uint8_t, N>
 std::vector<ExternalInterface> Mapper::mapLocalNetwork(LocalHost& machine, const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap, RawSocket& socket) {
 
     socket.setSocketAsNonBlock();
-    socket.setSocketReceiveBuffer(1*1024*1024);
+    socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
     std::vector<std::thread> senders{};
     senders.reserve(localIPsToMap.size());
     std::vector<ExternalInterface> neighbours{};

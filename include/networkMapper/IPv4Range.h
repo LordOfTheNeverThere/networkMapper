@@ -27,7 +27,7 @@ public:
 
 class IPv4Range {
     FRIEND_TEST(MethodChecking, dualSenderMapLocalNetworkCheck);
-    FRIEND_TEST(MethodChecking, simpleMapNonLocalNetwork);
+    FRIEND_TEST(MethodChecking, checkIfAlgoHandlesAllReplies);
     std::vector<uint32_t> m_ipsRangeNonLocal{};
     std::unordered_map<std::string, std::vector<uint32_t>> m_ipsRangeLocal{};
 

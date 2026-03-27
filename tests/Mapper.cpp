@@ -22,11 +22,14 @@ TEST(MethodChecking, simpleMapLocalNetworkCheck) {
 TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
 
     LocalHost myMachine {LocalHost(true)};
-    std::string defaultGateway {Tools::getDefaultGateway()};
-    InternalInterface interfaceWithGateway = myMachine.getInterfaceFromSubnet(defaultGateway, AF_INET);
-    IPv4Range range {IPv4Range(interfaceWithGateway.getIPAddress(), interfaceWithGateway.getNetworkMask(), myMachine)};
-    Int numOfPacketsToSend {50};
-    range.m_ipsRangeLocal["lo"].insert(range.m_ipsRangeLocal["lo"].begin() , range.m_ipsRangeLocal[interfaceWithGateway.getInterfaceName()].begin(), std::next(range.m_ipsRangeLocal[interfaceWithGateway.getInterfaceName()].begin(), numOfPacketsToSend));
+    std::string networkIP {"127.0.0.1"};
+    std::string networkMask {"255.255.255.192"};
+    InternalInterface loInterface {networkIP, networkMask, "000000000000", AF_INET, "lo"};
+    myMachine.pushDataToInterfaces(loInterface); // mock loopback interface
+    IPv4Range range {networkIP, networkMask, myMachine};
+    uint32_t networkMaskInBytes {};
+    inet_pton(AF_INET, networkMask.c_str(), &networkMaskInBytes);
+    uint32_t numOfPacketsToSend {Tools::getNumberOfIPsInMaskIPv4(networkMaskInBytes)};
 
     RawSocket socket {AF_PACKET, htons(ETH_P_ARP)};
     std::string cmdOutput {};
@@ -43,11 +46,11 @@ TEST(MethodChecking, dualSenderMapLocalNetworkCheck) {
 }
 
 
-TEST(MethodChecking, simpleMapNonLocalNetwork) {
+TEST(MethodChecking, checkIfAlgoHandlesAllReplies) {
     LocalHost myMachine {LocalHost(true)};
 
 
-    IPv4Range range {IPv4Range("127.0.0.0", "255.0.0.0", myMachine)};
+    IPv4Range range {IPv4Range("127.0.0.0", "255.255.0.0", myMachine)};
     range.m_ipsRangeNonLocal.insert(range.m_ipsRangeNonLocal.begin(), range.m_ipsRangeLocal["lo"].begin(), range.m_ipsRangeLocal["lo"].end());
     RawSocket socket {AF_INET, IPPROTO_ICMP};
     Mapper mapper {AF_INET};

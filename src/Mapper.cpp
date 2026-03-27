@@ -11,6 +11,7 @@
 #include "socks/types.h"
 #include "networkMapper/Mapper.h"
 
+#include <future>
 #include <random>
 Mapper::Mapper(const sa_family_t ipVersion)
 : m_ipVersion{ipVersion} {}
@@ -48,9 +49,11 @@ static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_
             }
             retries--;
             i--;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Add more waiting time in case the socket is presently occupied
+            std::this_thread::sleep_for(std::chrono::milliseconds(ARP_SEND_BATCH_SLEEP_MS));
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(uni1To10(rng)));
+        if (i % ARP_SEND_BATCH_SIZE == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(ARP_SEND_BATCH_SLEEP_MS));
+        }
     }
 }
 template <size_t N> //Variable packet size
@@ -152,6 +155,7 @@ std::vector<ExternalInterface> Mapper::mapLocalNetwork(
     RawSocket socket = RawSocket(AF_PACKET, htons(ETH_P_ARP));
     socket.setSocketAsNonBlock();
     socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
+    socket.setSocketSendBuffer(SND_BUFFER_SIZE);
     std::vector<std::thread> senders{};
     senders.reserve(localIPsToMap.size());
     std::vector<ExternalInterface> neighbours{};
@@ -223,6 +227,7 @@ std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint
     RawSocket socket {AF_INET, IPPROTO_ICMP};
     socket.setSocketAsNonBlock();
     socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
+    socket.setSocketSendBuffer(SND_BUFFER_SIZE);
     uint64_t buff {socket.getSocketRcvBuffer()};
     std::vector<ExternalInterface> neighbours{};
     bool finished = false;
@@ -243,9 +248,28 @@ std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint
     sender.join();
     receiver.join();
     handler.join();
-
     return neighbours;
 }
+
+std::vector<ExternalInterface> Mapper::mapNetwork(
+    const std::vector<uint32_t>& nonLocalIPsToMap,
+    const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap,
+    LocalHost myMachine
+    ) {
+
+    std::future<std::vector<ExternalInterface>> nonLocalMapper = std::async(mapNonLocalNetwork, std::cref(nonLocalIPsToMap));
+    std::future<std::vector<ExternalInterface>> localMapper = std::async(mapLocalNetwork, std::cref(localIPsToMap), std::ref(myMachine));
+
+    m_neighbours = std::move(localMapper.get());
+    std::vector<ExternalInterface> nonLocalNeighbours {nonLocalMapper.get()};
+    m_neighbours.insert(
+    m_neighbours.end(),
+    std::make_move_iterator(nonLocalNeighbours.begin()),
+    std::make_move_iterator(nonLocalNeighbours.end()));
+
+    return m_neighbours;
+}
+
 
 void Mapper::getTraceRoute(const std::string& destIPAddr, const Int& hops) {
 

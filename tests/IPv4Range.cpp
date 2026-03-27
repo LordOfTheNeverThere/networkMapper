@@ -87,3 +87,26 @@ TEST(ErrorChecking, ExcessiveNetworkMask) {
         }
     }, IPv4OutOfRangeException);
 }
+
+
+TEST(MethodChecking, plusOperatorOverloading) {
+
+    LocalHost myMachine {LocalHost(true)};
+    std::string networkIP {"127.0.0.1"};
+    std::string networkMask {"255.255.255.192"};
+    InternalInterface loInterface {networkIP, networkMask, "000000000000", AF_INET, "lo"};
+    myMachine.pushDataToInterfaces(loInterface); // mock loopback interface
+    IPv4Range rangeLocal1 {networkIP, networkMask, myMachine}; //Local Range 1
+
+    std::string defaultGateway {Tools::getDefaultGateway()};
+    InternalInterface interfaceWithGateway = myMachine.getInterfaceFromSubnet(defaultGateway, AF_INET);
+    IPv4Range rangeLocal2 {IPv4Range(interfaceWithGateway.getIPAddress(), interfaceWithGateway.getNetworkMask(), myMachine)}; //Local Range 2
+
+    IPv4Range rangeNonLocal {"8.8.8.8", "255.255.255.0", myMachine};// Non Local Range
+
+    IPv4Range whollyRange {rangeLocal1 + rangeLocal2 + rangeNonLocal};
+    EXPECT_EQ(whollyRange.getIPsLocal().size(), 2);
+    EXPECT_EQ(whollyRange.getIPsNonLocal().size(), 256);
+    EXPECT_EQ(whollyRange.getIPsLocal().begin()->second.size(), 64);
+    EXPECT_EQ(std::next(whollyRange.getIPsLocal().begin(),1)->second.size(), 256);
+}

@@ -34,6 +34,8 @@ class IPv4Range {
 public:
     IPv4Range(const std::string& ip, const std::string& mask, const LocalHost& localhost);
 
+    IPv4Range() {};
+
     std::vector<uint32_t> getIPsNonLocal() {
         return m_ipsRangeNonLocal;
     }
@@ -41,5 +43,28 @@ public:
     std::unordered_map<std::string, std::vector<uint32_t>> getIPsLocal() {
         return m_ipsRangeLocal;
     }
+
+    friend IPv4Range operator+(const IPv4Range& objLeft, const IPv4Range& objRight);
 };
+inline IPv4Range operator+(const IPv4Range& objLeft, const IPv4Range& objRight) {
+    IPv4Range newRange {};
+
+    newRange.m_ipsRangeNonLocal.insert(newRange.m_ipsRangeNonLocal.begin(),objLeft.m_ipsRangeNonLocal.begin(), objLeft.m_ipsRangeNonLocal.end());
+    newRange.m_ipsRangeNonLocal.insert(newRange.m_ipsRangeNonLocal.end(),objRight.m_ipsRangeNonLocal.begin(), objRight.m_ipsRangeNonLocal.end());
+
+    for (auto mapEle: objLeft.m_ipsRangeLocal) {
+        newRange.m_ipsRangeLocal[mapEle.first] = mapEle.second;
+    }
+
+    for (auto mapEle: objRight.m_ipsRangeLocal) {
+        if (newRange.m_ipsRangeLocal.find(mapEle.first) != newRange.m_ipsRangeLocal.end()) {
+            newRange.m_ipsRangeLocal[mapEle.first].insert(newRange.m_ipsRangeLocal[mapEle.first].begin(),
+                mapEle.second.begin(), mapEle.second.end());
+        }
+        newRange.m_ipsRangeLocal[mapEle.first] = mapEle.second;
+    }
+
+    return newRange;
+}
+
 #endif //NETWORKMAPPER_IPV4RANGE_H

@@ -12,9 +12,9 @@ class Mapper {
     std::vector<std::string> ipsToTrace{};
 
 public:
-    static std::vector<ExternalInterface> mapLocalNetwork(LocalHost &machine,
-                                                          const std::unordered_map<std::string, std::vector<uint32_t>> &
-                                                          localIPsToMap, RawSocket &socket);
+    static std::vector<ExternalInterface> mapLocalNetwork(const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap,
+        const LocalHost& machine = LocalHost(true));
+
     static std::vector<ExternalInterface> mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap, RawSocket& socket);
 
     Mapper(const sa_family_t ipVersion);

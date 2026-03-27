@@ -146,8 +146,10 @@ static void receiving(const RawSocket& socket, std::deque<std::array<uint8_t, N>
     }
 }
 
-std::vector<ExternalInterface> Mapper::mapLocalNetwork(LocalHost& machine, const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap, RawSocket& socket) {
+std::vector<ExternalInterface> Mapper::mapLocalNetwork(
+    const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap, const LocalHost& machine) {
 
+    RawSocket socket = RawSocket(AF_PACKET, htons(ETH_P_ARP));
     socket.setSocketAsNonBlock();
     socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
     std::vector<std::thread> senders{};

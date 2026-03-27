@@ -31,7 +31,7 @@ IPv4Range::IPv4Range(const std::string& ip, const std::string& mask, const Local
         throw ConversionToIPBinaryException(mask);
     }
 
-    double minNetworkMask {255 * std::pow(2, 16) + 255 * std::pow(2, 24)};
+    uint32_t minNetworkMask {Tools::getNumericValueOfIPAddr(255,255,0,0)};
     if (ntohl(maskSockAddr.sin_addr.s_addr) < minNetworkMask) {
         throw IPv4OutOfRangeException();
     }

@@ -116,7 +116,7 @@ std::vector<ExternalInterface> Mapper::mapLocalNetwork(
     }
 
     std::thread receiver(receiving<ETH_FRAME_LEN>, std::cref(socket), std::ref(bufferVector),
-        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), true);
+        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), true, 0, 0);
     std::thread handler(bufferHandler<ETH_FRAME_LEN>, std::ref(bufferVector), std::ref(neighbours),
         std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), true);
 
@@ -181,7 +181,7 @@ std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint
            std::cref(nonLocalIPsToMap));
 
     std::thread receiver(receiving<IP_MAXPACKET>, std::cref(socket), std::ref(bufferVector),
-        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
+        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), false, 0, 0);
     std::thread handler(bufferHandler<IP_MAXPACKET>, std::ref(bufferVector), std::ref(neighbours),
         std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
 

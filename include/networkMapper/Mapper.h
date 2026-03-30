@@ -7,6 +7,7 @@
 #include "socks/RawSocket.h"
 #include <unordered_map>
 #include <deque>
+#include <netinet/ip_icmp.h>
 
 class Mapper {
     friend class Tracer;
@@ -16,7 +17,8 @@ class Mapper {
 
     template <size_t N> //Variable packet size
     static void receiving(const RawSocket& socket, std::deque<std::array<uint8_t, N>>& bufferVector,
-        bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar,  const bool isARP) {
+        bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar,  const bool isARP,
+        const Int icmpType = ICMP_ECHOREPLY, const uint64_t processID = 0) {
         Int epollFD = epoll_create1(0);
         if (epollFD == -1) {
             throw EpollCreationException();
@@ -46,7 +48,8 @@ class Mapper {
                         if (isARP) {
                             numBytesRecv = socket.receiveArpEchoReply(recvBuffer.data());
                         } else {
-                            numBytesRecv = socket.receivePing(recvBuffer.data());
+                            numBytesRecv = socket.receivePing(
+                                recvBuffer.data(), "", 0, processID, icmpType);
                         }
                     } catch (std::exception& e) {
 

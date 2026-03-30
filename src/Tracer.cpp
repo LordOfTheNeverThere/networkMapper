@@ -1,16 +1,15 @@
-#include "networkMapper/Tracer.h"
 
 #include <deque>
-
-
+#include <random>
 #include "networkMapper/Mapper.h"
+#include "networkMapper/Tracer.h"
 #include "networkMapper/TraceRouteResult.h"
 #include "socks/RawSocket.h"
 
 
 
-static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferVector,std::vector<ExternalInterface>& neighbours,
-    const bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar, const bool isARP) {
+static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferVector, TraceRouteResult& result,
+    const bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar, const uint16_t numOfHops) {
 
     while (true) {
         std::unique_lock<std::mutex> lock(exclusioner);
@@ -30,8 +29,7 @@ static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferV
 
                 std::array<uint8_t, IP_MAXPACKET> packet {std::move(localBuffer.front())};// transfer ownership of the data
                 localBuffer.pop_front();// delete empty entry
-                //TraceRouteResult neighbour {};// TODO: Find way to validate and construct the Result from the buffer. Validade Seq Number
-
+                result.addEntryFromEchoReply(packet.data(), numOfHops);
             }
         }
     }
@@ -39,7 +37,8 @@ static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferV
 
 
 
-void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string& origin, const std::string& destination) {
+void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string& origin,
+    const std::string& destination, const uint64_t processID) {
     uint8_t ipHeaderSendBuffer[sizeof(ip)] {};
     IPv4Header ipHeader{ipHeaderSendBuffer, origin.c_str(), destination.c_str(),0, 0};
 
@@ -47,7 +46,7 @@ void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string
         ipHeader.setTTL(ttl);
         for (uint16_t retryNum = 0; retryNum < NUM_OF_PINGS; retryNum++) {
             try {
-                socket.sendPing(destination, Tracer::getCustomSeqNum(ttl, retryNum), 0, ipHeader);
+                socket.sendPing(destination, Tracer::getCustomSeqNum(ttl, retryNum), processID, ipHeader);
             } catch (SystemCallException& e) {
                 std::cerr << e.what() << '\n';
             }
@@ -57,14 +56,13 @@ void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string
 
 
 
-std::vector<TraceRouteResult> Tracer::trace(std::string& destination, uint16_t numOfHops) {
-    std::vector<TraceRouteResult> result {};
-    if (destination.empty()) {
-        return result;
-    }
-    if (numOfHops > MAX_NUM_OF_HOPS) {
-        throw InvalidTTLException(numOfHops);
-    }
+TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops) {
+    TraceRouteResult result {};
+
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> uni70To7070(70,7070);
+    uint64_t processID {uni70To7070(rng)};
 
     RawSocket socket {AF_INET, IPPROTO_ICMP};
     socket.setSocketAsNonBlock();
@@ -82,16 +80,18 @@ std::vector<TraceRouteResult> Tracer::trace(std::string& destination, uint16_t n
         std::ref(socket),
         numOfHops,
         Tools::getDefaultGateway(),
-        destination);
+        destination,
+        processID);
 
 
     std::thread receiver(Mapper::receiving<IP_MAXPACKET>, std::cref(socket), std::ref(bufferVector),
-        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
-    // std::thread handler(bufferHandler<IP_MAXPACKET>, std::ref(bufferVector), std::ref(neighbours),
-    //     std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), false);
-    //
+        std::ref(finished), std::ref(exclusioner), std::ref(conditionVar), false, ICMP_TIME_EXCEEDED, processID);
+    std::thread handler(bufferHandler, std::ref(bufferVector), std::ref(result),
+        std::cref(finished), std::ref(exclusioner), std::ref(conditionVar), numOfHops);
+
     sender.join();
     receiver.join();
-    // handler.join();
+    handler.join();
+
     return result;
 };

@@ -10,6 +10,9 @@ add_library(networkMapperLib STATIC
         src/IPv4Range.cpp
         include/networkMapper/Exceptions.h
         include/networkMapper/IPv4Range.h
+        include/networkMapper/TraceRouteResult.h
+        include/networkMapper/Tracer.h
+        src/Tracer.cpp
 )
 add_subdirectory(../socks ${CMAKE_BINARY_DIR}/socks)
 

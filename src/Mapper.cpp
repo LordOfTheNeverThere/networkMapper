@@ -1,5 +1,4 @@
 #include <condition_variable>
-#include <deque>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -7,16 +6,12 @@
 #include <sys/epoll.h>
 
 #include "socks/LocalHost.h"
-#include "socks/RawSocket.h"
 #include "socks/types.h"
 #include "networkMapper/Mapper.h"
-
 #include <future>
-#include <random>
+
 Mapper::Mapper(const sa_family_t ipVersion)
 : m_ipVersion{ipVersion} {}
-
-
 
 
 static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_t>& ips, const InternalInterface& interface) {
@@ -30,9 +25,6 @@ static void arpMappingSending(const RawSocket& socket, const std::vector<uint32_
     std::string interfaceMAC {interface.getMacAddress()};
 
     Int retries {MAX_RETRIES};
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> uni1To10(1,10);
 
     for (Int i = 0; i < ips.size(); ++i) {
         try {
@@ -90,67 +82,13 @@ static void bufferHandler(std::deque<std::array<uint8_t, N>>& bufferVector,std::
         }
     }
 }
-template <size_t N> //Variable packet size
-static void receiving(const RawSocket& socket, std::deque<std::array<uint8_t, N>>& bufferVector,
-    bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar,  const bool isARP) {
-    Int epollFD = epoll_create1(0);
-    if (epollFD == -1) {
-        throw EpollCreationException();
-    }
-    try {
-        epoll_event ev {};
-        ev.events = EPOLLIN;
-        ev.data.fd = socket.m_socket;
-        Int result = epoll_ctl(epollFD, EPOLL_CTL_ADD, socket.m_socket, &ev);
-        if (result == -1) {
-            throw EpollControllerException(EPOLL_CTL_ADD);
-        }
-        while (true) {
-            result = epoll_wait(epollFD, &ev, 1,10000);
-            if (result == -1) {
-                throw EpollWaitException();
-            } else if (result == 0) {
-                //timeout
-                close(epollFD);
-                finished = true;
-                conditionVar.notify_one();
-                return;
-            }  if (ev.data.fd == socket.m_socket && ev.events & EPOLLIN){
-                std::array<uint8_t, N> recvBuffer {};
-                uint64_t numBytesRecv {};
-                try{
-                    if (isARP) {
-                        numBytesRecv = socket.receiveArpEchoReply(recvBuffer.data());
-                    } else {
-                        numBytesRecv = socket.receivePing(recvBuffer.data());
-                    }
-                } catch (std::exception& e) {
-
-                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        continue; //EWOULDBLOCK or EAGAIN, kernel dropped the packet for some reason, such as CRC corruption
-                    } else {
-                        std::cerr << e.what() << '\n';
-                    }
-                }
-                if (numBytesRecv == 0) {
-                    continue; //Rare: Client Closed connection or empty packet
-                }
-
-                std::unique_lock<std::mutex> lock(exclusioner);
-                bufferVector.push_back(recvBuffer);
-                lock.unlock();
-                conditionVar.notify_one();
-                //std::cout << "Received a packet, loading into the buffer" << '\n';
-            }
-        }
-    } catch (std::runtime_error& e) {
-        close(epollFD); // in case an exception occurs we can close what we need
-        throw;
-    }
-}
 
 std::vector<ExternalInterface> Mapper::mapLocalNetwork(
     const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap, const LocalHost& machine) {
+
+    if (localIPsToMap.empty()) {
+        return std::vector<ExternalInterface>{};
+    }
 
     RawSocket socket = RawSocket(AF_PACKET, htons(ETH_P_ARP));
     socket.setSocketAsNonBlock();
@@ -223,12 +161,14 @@ static void pingMappingSending(RawSocket& socket, const std::vector<uint32_t>& i
 }
 
 std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint32_t>& nonLocalIPsToMap) {
+    if (nonLocalIPsToMap.empty()) {
+        return std::vector<ExternalInterface>{};
+    }
 
     RawSocket socket {AF_INET, IPPROTO_ICMP};
     socket.setSocketAsNonBlock();
     socket.setSocketReceiveBuffer(RCV_BUFFER_SIZE);
     socket.setSocketSendBuffer(SND_BUFFER_SIZE);
-    uint64_t buff {socket.getSocketRcvBuffer()};
     std::vector<ExternalInterface> neighbours{};
     bool finished = false;
     std::deque<std::array<uint8_t, IP_MAXPACKET>> bufferVector {};
@@ -268,10 +208,5 @@ std::vector<ExternalInterface> Mapper::mapNetwork(
     std::make_move_iterator(nonLocalNeighbours.end()));
 
     return m_neighbours;
-}
-
-
-void Mapper::getTraceRoute(const std::string& destIPAddr, const Int& hops) {
-
 }
 

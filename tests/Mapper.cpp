@@ -52,6 +52,14 @@ TEST(MethodChecking, checkIfAlgoHandlesAllReplies) {
     EXPECT_EQ(result.size(), range.getIPsNonLocal().size());
 }
 
+TEST(MethodChecking, mapNonLocalInternet) {
+    LocalHost myMachine {LocalHost(true)};
+    IPv4Range rangeNonLocal {"8.8.8.8", "255.255.0.0", myMachine};
+    Mapper mapper {AF_INET};
+    auto result = Mapper::mapNonLocalNetwork(rangeNonLocal.getIPsNonLocal());
+    EXPECT_TRUE(true); //TODO: CHECK if MS sleep needs to be adjusted for Pings (compare with nmap)
+}
+
 TEST(MethodChecking, mapNetwork2Local1NonLocal) {
     LocalHost myMachine {LocalHost(true)};
     std::string networkIP {"127.0.0.1"};

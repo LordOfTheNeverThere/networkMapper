@@ -1,6 +1,7 @@
 add_executable(networkMapperTests
         IPv4Range.cpp
         Mapper.cpp
+        Tracer.cpp
 )
 
 target_link_libraries(networkMapperTests

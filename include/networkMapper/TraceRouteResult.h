@@ -62,7 +62,7 @@ public:
         uint64_t timelapse {};
         TraceRouteHop hop {};
         uint64_t currNanosecs = std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-        auto [ttl, retryNum] = getValuesFromCustomSeqNum(ICMPHeaderReceive.un.echo.sequence);
+        auto [ttl, retryNum] = getValuesFromCustomSeqNum(ntohs(ICMPHeaderReceive.un.echo.sequence));
 
         if (ttl > ttlUsed || retryNum > NUM_OF_PINGS) {
             std::cerr << "Tracer caught an ICMP packet with incorrect ttl and retry number, respectfully: " << ttl << " and " << retryNum << '\n' << "Ignoring it...\n";

@@ -12,3 +12,9 @@ TEST(MethodChecking, customSeqNum) {
         }
     }
 }
+
+TEST(MethodChecking, trace) {
+    std::string destinationIP {Tools::getDefaultGateway()};
+    auto res = Tracer::trace(destinationIP);
+    Int a{};
+}

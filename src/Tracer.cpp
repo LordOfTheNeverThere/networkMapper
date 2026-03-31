@@ -36,7 +36,9 @@ static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferV
 }
 
 
-
+//TODO: Restructure the threads so that we send the three pings we wait and if the other side that replies is the destination we do not increment the TTL
+// Maybe all this threading is unnecessary
+// Maybe do the threading per Destination, so 10 different destinations, 10 different threads
 void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string& origin,
     const std::string& destination, const uint64_t processID) {
     uint8_t ipHeaderSendBuffer[sizeof(ip)] {};
@@ -45,10 +47,14 @@ void sendTraceroutePing(RawSocket& socket, uint16_t numOfHops, const std::string
     for (uint16_t ttl = 1; ttl < numOfHops; ttl++) {
         ipHeader.setTTL(ttl);
         for (uint16_t retryNum = 0; retryNum < NUM_OF_PINGS; retryNum++) {
+            uint16_t seqNum {Tracer::getCustomSeqNum(ttl, retryNum)};
             try {
-                socket.sendPing(destination, Tracer::getCustomSeqNum(ttl, retryNum), processID, ipHeader);
+                socket.sendPing(destination, seqNum, processID, ipHeader);
             } catch (SystemCallException& e) {
                 std::cerr << e.what() << '\n';
+            }
+            if ((seqNum - 100 )% ARP_SEND_BATCH_SIZE == 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(ARP_SEND_BATCH_SLEEP_MS));
             }
         }
     }
@@ -75,11 +81,14 @@ TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops) {
     std::mutex exclusioner {};
     std::condition_variable conditionVar {};
 
+    LocalHost myMachine {true};
+    InternalInterface outboundInterface {myMachine.getInterfaceFromSubnet(Tools::getDefaultGateway(), AF_INET)};
+
     std::thread sender(
         sendTraceroutePing,
         std::ref(socket),
         numOfHops,
-        Tools::getDefaultGateway(),
+        outboundInterface.getIPAddress(),
         destination,
         processID);
 

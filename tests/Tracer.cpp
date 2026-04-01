@@ -16,5 +16,11 @@ TEST(MethodChecking, customSeqNum) {
 TEST(MethodChecking, trace) {
     std::string destinationIP {"1.1.1.1"};
     auto res = Tracer::trace(destinationIP, 64);
-    std::cout << res;
+    EXPECT_GT(res.getPath().size(), 1);
+    for (auto [ttl, hop]: res.getPath()) {
+        EXPECT_GT(ttl, 0);
+        for (auto retry: hop) {
+            EXPECT_GE(ttl, 0);
+        }
+    }
 }

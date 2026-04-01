@@ -2,7 +2,6 @@
 #ifndef NETWORKMAPPER_TRACEROUTERESULT_H
 #define NETWORKMAPPER_TRACEROUTERESULT_H
 #include <map>
-#include <optional>
 #include <netinet/ip_icmp.h>
 #include "socks/ExternalInterface.h"
 
@@ -153,7 +152,7 @@ inline std::ostream& operator<<(std::ostream& os, const TraceRouteResult& result
             os << "Time:" << " ";
             for (const auto& hop : path.at(ttl)) {
                 std::string timelapse {(hop.getTimelapseInMillis() == 0) ? "***" : std::to_string(hop.getTimelapseInMillis())};
-                os << std::left << std::setw(8) << timelapse << "  ";
+                os << std::left << std::setw(12) << timelapse << "  ";
             }
             os << "ms\n";
         }

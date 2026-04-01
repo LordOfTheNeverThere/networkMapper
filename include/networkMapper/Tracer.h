@@ -4,7 +4,6 @@
 
 #ifndef NETWORKMAPPER_TRACER_H
 #define NETWORKMAPPER_TRACER_H
-#include <vector>
 #include "TraceRouteResult.h"
 #include "socks/RawSocket.h"
 
@@ -23,6 +22,7 @@ class Tracer {
     static void tracing(RawSocket& socket, std::string& destination,
     uint16_t numOfHops, uint16_t traceID, TraceRouteResult& result, epoll_event ev, Int epollFD);
 
+    static void sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::string& origin, const std::string& destination, const uint16_t traceID);
 public:
 
     static uint16_t getCustomSeqNum(uint16_t ttl, uint16_t retry) {

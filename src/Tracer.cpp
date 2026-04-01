@@ -7,39 +7,7 @@
 #include "socks/RawSocket.h"
 
 
-
-// static void bufferHandler(std::deque<std::array<uint8_t, IP_MAXPACKET>>& bufferVector, TraceRouteResult& result,
-//     const bool& finished, std::mutex& exclusioner, std::condition_variable& conditionVar, const uint16_t numOfHops) {
-//
-//     while (true) {
-//         std::unique_lock<std::mutex> lock(exclusioner);
-//         conditionVar.wait(lock, [&] {
-//             return finished || !bufferVector.empty(); // Protection against spurious wake-ups
-//         });
-//         if (bufferVector.empty()) {
-//             // Receiver has ceased receiving and no more data is waiting for handling
-//             //std::cout << "Receiver has ceased receiving and no more data is waiting for handling" << '\n';
-//             break;
-//         } else {
-//             std::deque<std::array<uint8_t, IP_MAXPACKET>> localBuffer {std::move(bufferVector)};
-//             bufferVector.clear();
-//             lock.unlock(); //Allow receiver to continue receiving
-//             //std::cout << "Will add " << std::to_string(localBuffer.size()) << " new neighbours" << '\n';
-//             while (!localBuffer.empty()) {
-//
-//                 std::array<uint8_t, IP_MAXPACKET> packet {std::move(localBuffer.front())};// transfer ownership of the data
-//                 localBuffer.pop_front();// delete empty entry
-//                 result.addEntryFromEchoReply(packet.data(), numOfHops);
-//             }
-//         }
-//     }
-// }
-
-
-//TODO: Restructure the threads so that we send the three pings we wait and if the other side that replies is the destination we do not increment the TTL
-// Maybe all this threading is unnecessary
-// Maybe do the threading per Destination, so 10 different destinations, 10 different threads
-void sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::string& origin,
+void Tracer::sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::string& origin,
     const std::string& destination, const uint16_t traceID) {
     uint8_t ipHeaderSendBuffer[sizeof(ip)] {};
     IPv4Header ipHeader{ipHeaderSendBuffer, origin.c_str(), destination.c_str(),0, 0};

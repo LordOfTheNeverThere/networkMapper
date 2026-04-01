@@ -91,13 +91,8 @@ void Tracer::tracing(RawSocket& socket, std::string& destination,
 }
 
 
-TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops) {
+TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops, RawSocket& socket) {
     TraceRouteResult result {};
-
-    RawSocket socket {AF_INET, IPPROTO_ICMP};
-    socket.setSocketAsNonBlock();
-    socket.setSocketIPHeaderManually(1);
-
     auto traceID = static_cast<uint16_t>(socket.m_socket & 0xFFFF);
 
     Int epollFD = epoll_create1(0);
@@ -121,3 +116,20 @@ TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops) {
 
     return result;
 };
+
+
+std::vector<TraceRouteResult> Tracer::multipleTraces(std::vector<std::string>& destinations, uint16_t numOfHops) {
+    size_t numOfDestinations {destinations.size()};
+    std::vector<TraceRouteResult> results {};
+    results.resize(numOfDestinations);
+    RawSocket socket {AF_INET, IPPROTO_ICMP};
+    socket.setSocketAsNonBlock();
+    socket.setSocketIPHeaderManually(1);
+
+    for (int i = 0; i < numOfDestinations; ++i) {
+        results[i] = Tracer::trace(destinations[i], numOfHops, socket);
+        std::cout << "Traceroute to " << destinations[i] << '\n';
+        std::cout << results[i] << "\n\n";
+    }
+    return results;
+}

@@ -108,5 +108,7 @@ TEST(MethodChecking, plusOperatorOverloading) {
     EXPECT_EQ(whollyRange.getIPsLocal().size(), 2);
     EXPECT_EQ(whollyRange.getIPsNonLocal().size(), 256);
     EXPECT_EQ(whollyRange.getIPsLocal().begin()->second.size(), 64);
-    EXPECT_EQ(std::next(whollyRange.getIPsLocal().begin(),1)->second.size(), 256);
+    uint32_t interfaceWithGatewayMask {};
+    inet_pton(AF_INET, interfaceWithGateway.getNetworkMask().c_str(), &interfaceWithGatewayMask);
+    EXPECT_EQ(std::next(whollyRange.getIPsLocal().begin(),1)->second.size(), Tools::getNumberOfIPsInMaskIPv4(interfaceWithGatewayMask));
 }

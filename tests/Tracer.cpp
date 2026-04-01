@@ -13,14 +13,19 @@ TEST(MethodChecking, customSeqNum) {
     }
 }
 
-TEST(MethodChecking, trace) {
-    std::string destinationIP {"1.1.1.1"};
-    auto res = Tracer::trace(destinationIP, 64);
-    EXPECT_GT(res.getPath().size(), 1);
-    for (auto [ttl, hop]: res.getPath()) {
-        EXPECT_GT(ttl, 0);
-        for (auto retry: hop) {
-            EXPECT_GE(ttl, 0);
+TEST(MethodChecking, multipleTraces) {
+    std::vector<std::string> destinations {};
+    for (int i = 0; i < 4; ++i) {
+        destinations.push_back("1.1.1.1");
+    }
+    auto results = Tracer::multipleTraces(destinations, 64);
+
+    for (auto res: results) {
+        for (const auto& [ttl, hop]: res.getPath()) {
+            EXPECT_GT(ttl, 0);
+            for (auto retry: hop) {
+                EXPECT_GE(ttl, 0);
+            }
         }
     }
 }

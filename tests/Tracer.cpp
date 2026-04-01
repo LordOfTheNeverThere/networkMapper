@@ -14,7 +14,7 @@ TEST(MethodChecking, customSeqNum) {
 }
 
 TEST(MethodChecking, trace) {
-    std::string destinationIP {Tools::getDefaultGateway()};
-    auto res = Tracer::trace(destinationIP);
-    Int a{};
+    std::string destinationIP {"1.1.1.1"};
+    auto res = Tracer::trace(destinationIP, 64);
+    std::cout << res;
 }

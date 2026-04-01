@@ -57,7 +57,7 @@ TEST(MethodChecking, mapNonLocalInternet) {
     IPv4Range rangeNonLocal {"8.8.8.8", "255.255.0.0", myMachine};
     Mapper mapper {AF_INET};
     auto result = Mapper::mapNonLocalNetwork(rangeNonLocal.getIPsNonLocal());
-    EXPECT_TRUE(true); //TODO: CHECK if MS sleep needs to be adjusted for Pings (compare with nmap)
+    EXPECT_GT(result.size(), 1);
 }
 
 TEST(MethodChecking, mapNetwork2Local1NonLocal) {
@@ -77,5 +77,4 @@ TEST(MethodChecking, mapNetwork2Local1NonLocal) {
     Mapper mapper {AF_INET};
     auto result = mapper.mapNetwork(rangeNonLocal.getIPsNonLocal(), rangeLocal.getIPsLocal(), myMachine);
     EXPECT_GT(result.size(), 0 + 1 + 1); // Loopback addresses do not respond to ARP + at least the gateway + at least the google DNS server
-    // 980
 }

@@ -6,8 +6,9 @@
 #define NETWORKMAPPER_TRACER_H
 #include <vector>
 #include "TraceRouteResult.h"
+#include "socks/RawSocket.h"
 
-
+#define TR_SEND_SLEEP_MS 3
 #define RCV_BUFFER_SIZE_TR 1*1024*1024
 #define SND_BUFFER_SIZE_TR 1*1024*1024
 
@@ -18,6 +19,9 @@ public:
 
 
 class Tracer {
+
+    static void tracing(RawSocket& socket, std::string& destination,
+    uint16_t numOfHops, uint16_t traceID, TraceRouteResult& result, epoll_event ev, Int epollFD);
 
 public:
 

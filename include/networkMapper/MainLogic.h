@@ -4,12 +4,25 @@
 #include <vector>
 #include <string>
 
+#include "IPv4Range.h"
+#include "Mapper.h"
+#include "socks/Exceptions.h"
 void printHelp(const std::string& progName) {
     std::cout << "Usage: " << progName << " [OPTION] [ARGUMENTS...]\n\n"
               << "Options:\n"
               << "  -m, --map <IP> <NET>    Map an IPv4 address to a network address.\n"
               << "  -t, --trace <IPs...>    Perform a traceroute on a list of IP addresses.\n"
               << "  -h, --help              Display this help and exit.\n";
+}
+
+void mappingLogic(const std::string& ip, const std::string& mask) {
+    Mapper mapper {AF_INET};
+    LocalHost myMachine {LocalHost(true)};
+    IPv4Range range {ip, mask, myMachine};
+    auto results = mapper.mapNetwork(range.getIPsNonLocal(), range.getIPsLocal(), myMachine);
+    for (auto result: results) {
+        std::cout << result;
+    }
 }
 
 int mainLogic(int argc, char *argv[], bool testing = false) {
@@ -32,7 +45,15 @@ int mainLogic(int argc, char *argv[], bool testing = false) {
             std::string ip {argv[2]};
             std::string mask {argv[3]};
             if (!testing) {
-                //TODO: Do Mapping
+                try {
+                    mappingLogic(ip, mask);
+                } catch (IPv4OnlyException& ipv4err) {
+                    std::cerr << "Only IPv4 is allowed\n";
+                    return 1;
+                } catch (std::runtime_error& sce) {
+                    std::cerr << sce.what() << '\n';
+                    return 1;
+                }
             } else {
                 std::cout << "Mapping IP: " << ip << " to Network: " << mask << "\n";
             }

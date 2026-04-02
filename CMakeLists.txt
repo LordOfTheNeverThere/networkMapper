@@ -8,7 +8,6 @@ add_library(networkMapperLib STATIC
         include/networkMapper/Mapper.h
         src/Mapper.cpp
         src/IPv4Range.cpp
-        include/networkMapper/Exceptions.h
         include/networkMapper/IPv4Range.h
         include/networkMapper/TraceRouteResult.h
         include/networkMapper/Tracer.h

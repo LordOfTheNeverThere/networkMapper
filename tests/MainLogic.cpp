@@ -79,14 +79,16 @@ TEST(CmdLinetest, Tracing) {
     EXPECT_EQ("Tracing 1 target(s)...\nTracing 3 target(s)...\n", out);
 }
 
-TEST(MainLogicTest, Mapping) {
-
-    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-m", "192.168.1.1", "192.168.1.0"}, false), 0);
-
+TEST(MainTest, Mapping) {
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-m", "127.0.0.1", "255.255.255.0"}, false), 0);
+    std::string out = testing::internal::GetCapturedStdout();
+    std::string::difference_type numIPsMapped = std::count(out.begin(), out.end(), '\n')/2;
+    EXPECT_EQ(256, numIPsMapped);
 }
 
-TEST(MainLogicTest, Tracing) {
-
+TEST(MainTest, Tracing) {
+    
     EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "8.8.8.8"}, true), 0);
     EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "8.8.8.8", "1.1.1.1", "127.0.0.1"}, false), 0);
 }

@@ -1,7 +1,6 @@
-//
-// Created by miguel on 2/28/26.
-//
+#include "networkMapper/MainLogic.h"
 
 int main(int argc, char *argv[]) {
-    return 0;
+
+    return mainLogic(argc, argv);
 }

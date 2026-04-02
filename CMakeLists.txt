@@ -15,6 +15,7 @@ add_library(networkMapperLib STATIC
         src/Tracer.cpp
         src/TraceRouteResult.cpp
         include/networkMapper/TraceRouteHop.h
+        include/networkMapper/MainLogic.h
 )
 add_subdirectory(../socks ${CMAKE_BINARY_DIR}/socks)
 

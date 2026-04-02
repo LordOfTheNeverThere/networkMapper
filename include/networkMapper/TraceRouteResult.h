@@ -25,7 +25,7 @@ public:
 
     static std::pair<uint16_t, uint16_t> getValuesFromCustomSeqNum(uint16_t seqNum);
 
-    TraceRouteHop addEntryFromEchoReply(const uint8_t * reply, const uint16_t ttlUsed, uint16_t traceID, std::string& destination);
+    TraceRouteHop addEntryFromEchoReply(const uint8_t * reply, const uint16_t ttlUsed, uint16_t traceID, const std::string& destination);
 };
 
 

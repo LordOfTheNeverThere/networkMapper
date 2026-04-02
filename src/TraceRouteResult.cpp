@@ -31,7 +31,7 @@ std::pair<uint16_t, uint16_t> TraceRouteResult::getValuesFromCustomSeqNum(uint16
 
 
 
-    TraceRouteHop TraceRouteResult::addEntryFromEchoReply(const uint8_t * reply, const uint16_t ttlUsed, uint16_t traceID, std::string& destination) {
+    TraceRouteHop TraceRouteResult::addEntryFromEchoReply(const uint8_t * reply, const uint16_t ttlUsed, uint16_t traceID, const std::string& destination) {
         Int sizeOfIpHeader = (reply[0] & 0x0F) * 4;
         Int sizeOfICMPHeader {8};
 

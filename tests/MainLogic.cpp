@@ -88,7 +88,15 @@ TEST(MainTest, Mapping) {
 }
 
 TEST(MainTest, Tracing) {
-    
-    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "8.8.8.8"}, true), 0);
+    testing::internal::CaptureStderr();
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "8.8.8.8"}, false), 0);
     EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "8.8.8.8", "1.1.1.1", "127.0.0.1"}, false), 0);
+    std::string err = testing::internal::GetCapturedStderr();
+    std::string out = testing::internal::GetCapturedStdout();
+    EXPECT_EQ("", err); // No errors should appear on the cerr buffer
+    EXPECT_NE(out.find("Traceroute to 127.0.0.1"), out.npos); // should be able to do traceroute of at least a local IP
+    EXPECT_NE(out.find_first_of("8.8.8.8"), out.find_last_of("8.8.8.8")); // at least two entries specifying 8.8.8.8
 }
+
+//TODO: Add the -c flag an its implementation, make a test with an hop count greater than uint16_t can handle

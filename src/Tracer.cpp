@@ -26,7 +26,7 @@ void Tracer::sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::stri
 }
 
 
-void Tracer::tracing(RawSocket& socket, std::string& destination,
+void Tracer::tracing(RawSocket& socket, const std::string& destination,
     uint16_t numOfHops, uint16_t traceID, TraceRouteResult& result, epoll_event ev, Int epollFD) {
 
     std::deque<std::array<uint8_t, IP_MAXPACKET>> bufferVector {};
@@ -48,7 +48,7 @@ void Tracer::tracing(RawSocket& socket, std::string& destination,
         }
 
         while (true) { // Collect all packets at the buffer for posterior processing
-            Int epollRes = epoll_wait(epollFD, &ev, 1,10000); // wait for their arrival
+            Int epollRes = epoll_wait(epollFD, &ev, 1,100); // wait for their arrival
             if (epollRes == -1) {
                 throw EpollWaitException();
             } else if (epollRes == 0) {
@@ -91,7 +91,7 @@ void Tracer::tracing(RawSocket& socket, std::string& destination,
 }
 
 
-TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops, RawSocket& socket) {
+TraceRouteResult Tracer::trace(const std::string& destination, uint16_t numOfHops, RawSocket& socket) {
     TraceRouteResult result {};
     auto traceID = static_cast<uint16_t>(socket.m_socket & 0xFFFF);
 
@@ -118,7 +118,12 @@ TraceRouteResult Tracer::trace(std::string& destination, uint16_t numOfHops, Raw
 };
 
 
-std::vector<TraceRouteResult> Tracer::multipleTraces(std::vector<std::string>& destinations, uint16_t numOfHops) {
+std::vector<TraceRouteResult> Tracer::multipleTraces(const std::vector<std::string>& destinations, Int numOfHops) {
+    if (numOfHops > std::numeric_limits<uint16_t>::max()) {
+        throw InvalidTTLException(numOfHops);
+    }
+    numOfHops = static_cast<uint16_t>(numOfHops);
+
     size_t numOfDestinations {destinations.size()};
     std::vector<TraceRouteResult> results {};
     results.resize(numOfDestinations);
@@ -127,9 +132,14 @@ std::vector<TraceRouteResult> Tracer::multipleTraces(std::vector<std::string>& d
     socket.setSocketIPHeaderManually(1);
 
     for (int i = 0; i < numOfDestinations; ++i) {
+
         results[i] = Tracer::trace(destinations[i], numOfHops, socket);
-        std::cout << "Traceroute to " << destinations[i] << '\n';
-        std::cout << results[i] << "\n\n";
+        if (results[i].getPath().empty()) {
+            std::cout << "No path found to " << destinations[i] << '\n';
+        } else {
+            std::cout << "Traceroute to " << destinations[i] << '\n';
+            std::cout << results[i] << "\n\n";
+        }
     }
     return results;
 }

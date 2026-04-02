@@ -6,6 +6,7 @@
 
 #include "IPv4Range.h"
 #include "Mapper.h"
+#include "Tracer.h"
 #include "socks/Exceptions.h"
 void printHelp(const std::string& progName) {
     std::cout << "Usage: " << progName << " [OPTION] [ARGUMENTS...]\n\n"
@@ -23,6 +24,10 @@ void mappingLogic(const std::string& ip, const std::string& mask) {
     for (auto result: results) {
         std::cout << result;
     }
+}
+
+void tracingLogic(const std::vector<std::string>& ips, Int numOfHops = 64) {
+    Tracer::multipleTraces(ips, numOfHops);
 }
 
 int mainLogic(int argc, char *argv[], bool testing = false) {
@@ -50,8 +55,8 @@ int mainLogic(int argc, char *argv[], bool testing = false) {
                 } catch (IPv4OnlyException& ipv4err) {
                     std::cerr << "Only IPv4 is allowed\n";
                     return 1;
-                } catch (std::runtime_error& sce) {
-                    std::cerr << sce.what() << '\n';
+                } catch (std::runtime_error& runerr) {
+                    std::cerr << runerr.what() << '\n';
                     return 1;
                 }
             } else {
@@ -69,7 +74,12 @@ int mainLogic(int argc, char *argv[], bool testing = false) {
                 ips.emplace_back(argv[argIndex]);
             }
             if (!testing) {
-                //TODO: Do Tracing
+                try {
+                    tracingLogic(ips);
+                } catch (std::runtime_error& runerr) {
+                    std::cerr << runerr.what() << '\n';
+                    return 1;
+                }
             } else {
                 std::cout << "Tracing " << ips.size() << " target(s)...\n";
             }

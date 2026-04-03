@@ -24,7 +24,7 @@ public:
 
     std::vector<ExternalInterface> mapNetwork(const std::vector<uint32_t>& nonLocalIPsToMap,
         const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap,
-        LocalHost myMachine = LocalHost(true));
+        LocalHost& myMachine);
 
     Mapper(const sa_family_t ipVersion);
 

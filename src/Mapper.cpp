@@ -257,14 +257,11 @@ std::vector<ExternalInterface> Mapper::mapNonLocalNetwork(const std::vector<uint
 std::vector<ExternalInterface> Mapper::mapNetwork(
     const std::vector<uint32_t>& nonLocalIPsToMap,
     const std::unordered_map<std::string, std::vector<uint32_t>>& localIPsToMap,
-    LocalHost myMachine
+    LocalHost& myMachine
     ) {
-
-    std::future<std::vector<ExternalInterface>> nonLocalMapper = std::async(mapNonLocalNetwork, std::cref(nonLocalIPsToMap));
-    std::future<std::vector<ExternalInterface>> localMapper = std::async(mapLocalNetwork, std::cref(localIPsToMap), std::ref(myMachine));
-
-    m_neighbours = std::move(localMapper.get());
-    std::vector<ExternalInterface> nonLocalNeighbours {nonLocalMapper.get()};
+    std::vector<ExternalInterface> nonLocalNeighbours = mapNonLocalNetwork(nonLocalIPsToMap);
+    std::vector<ExternalInterface> localNeighbours = mapLocalNetwork(localIPsToMap, myMachine);
+    m_neighbours = std::move(localNeighbours);
     m_neighbours.insert(
     m_neighbours.end(),
     std::make_move_iterator(nonLocalNeighbours.begin()),

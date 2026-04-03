@@ -38,7 +38,7 @@ add_library(networkMapperLib STATIC
 )
 
 # Link against the fetched socks library
-target_link_libraries(networkMapperLib PRIVATE socks)
+target_link_libraries(networkMapperLib PUBLIC socks)
 
 target_include_directories(networkMapperLib
         PUBLIC
@@ -51,7 +51,7 @@ target_include_directories(networkMapperLib
 
 # Main Application Executable
 add_executable(networkMapperDev src/main.cpp)
-target_link_libraries(networkMapperDev PRIVATE networkMapperLib)
+target_link_libraries(networkMapperDev PUBLIC networkMapperLib)
 
 # --- INSTALLATION LOGIC ---
 

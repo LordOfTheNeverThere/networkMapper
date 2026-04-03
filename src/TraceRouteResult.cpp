@@ -52,13 +52,13 @@ std::pair<uint16_t, uint16_t> TraceRouteResult::getValuesFromCustomSeqNum(uint16
         }
 
         if (traceID != ntohs(ICMPHeaderReceive.un.echo.id)) {
-            std::cerr << "Tracer caught an ICMP packet with incorrect ID.\nIgnoring it...\n";
+            //std::cerr << "Tracer caught an ICMP packet with incorrect ID.\nIgnoring it...\n";
             return TraceRouteHop{};
         }
         TraceRouteHop hop {};
         auto [ttl, retryNum] = getValuesFromCustomSeqNum(ntohs(ICMPHeaderReceive.un.echo.sequence));
         if (ttl > ttlUsed || retryNum > NUM_OF_PINGS) { // Check if seq is correct, id was checked at RawSocket.receive
-            std::cerr << "Tracer caught an ICMP packet with incorrect ttl and retry number, respectfully: " << ttl << " and " << retryNum << '\n' << "Ignoring it...\n";
+            //std::cerr << "Tracer caught an ICMP packet with incorrect ttl and retry number, respectfully: " << ttl << " and " << retryNum << '\n' << "Ignoring it...\n";
             return TraceRouteHop{};
         }
 

@@ -4,11 +4,13 @@
 
 namespace MainLogicTest {
     std::string progName {"test_app"};
-    std::string helpString {"Usage: " + progName + " [OPTION] [ARGUMENTS...]\n\n"
+    std::string helpString {"Usage: " + progName + " { -m | -t | -h } [ARGUMENTS...]\n\n"
               + "Options:\n"
-              + "  -m, --map <IP> <NET>    Map an IPv4 address to a network address.\n"
-              + "  -t, --trace <IPs...>    Perform a traceroute on a list of IP addresses.\n"
-              + "  -h, --help              Display this help and exit.\n"};
+              + "  -m, --map <IP> <NET>              Map an IPv4 address to a network address.\n"
+              + "  -t, --trace [-c, --count COUNT] <IP>... \n"
+              + "                                    Perform a traceroute. COUNT sets max hops.\n"
+              + "  -h, --help                        Display this help and exit.\n"
+    };
 }
 
 // Helper to convert a vector of strings to the char** format main expects
@@ -79,6 +81,25 @@ TEST(CmdLinetest, Tracing) {
     EXPECT_EQ("Tracing 1 target(s)...\nTracing 3 target(s)...\n", out);
 }
 
+TEST(CmdLinetest, TracingWithCount) {
+    testing::internal::CaptureStderr();
+    testing::internal::CaptureStdout();
+    // Empty Count
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c"}, true), 1);
+    // Wrong Count
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "8.8.8.8"}, true), 1);
+    // Out of Bounds Count
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "8888"}, true), 1);
+    // No IPs
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "88"}, true), 1);
+    // Correct
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "88", "8.8.8.8", "1.1.1.1", "127.0.0.1"}, true), 0);
+    std::string err = testing::internal::GetCapturedStderr();
+    std::string out = testing::internal::GetCapturedStdout();
+    EXPECT_EQ("Error: After the --count/-c flag please specify an integer for the max hop count.\nThe Time To Live Number is Invalid : 8.8.8.8\nThe Time To Live Number is Invalid, it should be a positive number within 8 bits.\nError: --trace requires at least one IP address.\n", err);
+    EXPECT_EQ("Tracing 3 target(s)...\n", out);
+}
+
 TEST(MainTest, Mapping) {
     testing::internal::CaptureStdout();
     EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-m", "127.0.0.1", "255.255.255.0"}, false), 0);
@@ -99,4 +120,18 @@ TEST(MainTest, Tracing) {
     EXPECT_NE(out.find_first_of("8.8.8.8"), out.find_last_of("8.8.8.8")); // at least two entries specifying 8.8.8.8
 }
 
-//TODO: Add the -c flag an its implementation, make a test with an hop count greater than uint16_t can handle
+TEST(MainTest, TracingWithCount) {
+    testing::internal::CaptureStderr();
+    testing::internal::CaptureStdout();
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "3", "127.0.0.1", }, false), 0);
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "3", "8.8.8.8", }, false), 0);
+    EXPECT_EQ(callRunProgram({MainLogicTest::progName,"-t", "-c", "3", "8.8.8.8", "1.1.1.1", "127.0.0.1"}, false), 0);
+    std::string err = testing::internal::GetCapturedStderr();
+    std::string out = testing::internal::GetCapturedStdout();
+    EXPECT_EQ("", err); // No errors should appear on the cerr buffer
+    EXPECT_NE(out.find_first_of("Traceroute to 127.0.0.1"), out.find_last_of("Traceroute to 127.0.0.1"));
+    EXPECT_NE(out.find_first_of("8.8.8.8"), out.find_last_of("8.8.8.8")); // at least two entries specifying 8.8.8.8
+    EXPECT_GE(std::count(out.begin(), out.end(), '\n'), 5);
+}
+
+

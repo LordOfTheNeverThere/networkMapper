@@ -14,7 +14,7 @@
 
 IPv4Range::IPv4Range(const std::string& ip, const std::string& mask, const LocalHost& localhost) {
 
-    if (ip.size() > 15 || ip.size() < 7 || mask.size() > 15 || mask.size() < 7) {
+    if (!Tools::isValidIPv4(ip) || !Tools::isValidIPv4(mask)) {
         throw IPv4OnlyException();
     }
 

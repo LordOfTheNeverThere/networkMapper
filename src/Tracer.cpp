@@ -7,7 +7,7 @@
 #include "socks/RawSocket.h"
 
 
-void Tracer::sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::string& origin,
+void Tracer::sendTraceroutePing(RawSocket& socket, uint8_t ttl, const std::string& origin,
     const std::string& destination, const uint16_t traceID) {
     uint8_t ipHeaderSendBuffer[sizeof(ip)] {};
     IPv4Header ipHeader{ipHeaderSendBuffer, origin.c_str(), destination.c_str(),0, 0};
@@ -27,7 +27,7 @@ void Tracer::sendTraceroutePing(RawSocket& socket, uint16_t ttl, const std::stri
 
 
 void Tracer::tracing(RawSocket& socket, const std::string& destination,
-    uint16_t numOfHops, uint16_t traceID, TraceRouteResult& result, epoll_event ev, Int epollFD) {
+    uint8_t numOfHops, uint16_t traceID, TraceRouteResult& result, epoll_event ev, Int epollFD) {
 
     std::deque<std::array<uint8_t, IP_MAXPACKET>> bufferVector {};
     LocalHost myMachine {true};
@@ -37,14 +37,18 @@ void Tracer::tracing(RawSocket& socket, const std::string& destination,
 
     bool destinationReached {false};
     bool finished {false};
-    for (uint16_t ttl = 1 ; !finished && ttl <= numOfHops; ttl++) { // Allow N empty buffers before formally stopping
+    for (uint8_t ttl = 1 ; !finished && ttl <= numOfHops; ttl++) {
 
         //sending until destination is reached
-        if (!destinationReached) {
-            sendTraceroutePing(socket, ttl, origin, destination, traceID);
-        } else {
+        if (destinationReached) {
             std::this_thread::sleep_for(std::chrono::milliseconds(30)); // wait for all packets to arrive
             finished = true;
+        } else if (ttl == numOfHops) {
+            sendTraceroutePing(socket, ttl, origin, destination, traceID);
+            std::this_thread::sleep_for(std::chrono::milliseconds(30)); // wait for all packets to arrive
+            finished = true;
+        } else { // Neither Destination or Max TTL reached. Can continue sending...
+            sendTraceroutePing(socket, ttl, origin, destination, traceID);
         }
 
         while (true) { // Collect all packets at the buffer for posterior processing
@@ -91,9 +95,8 @@ void Tracer::tracing(RawSocket& socket, const std::string& destination,
 }
 
 
-TraceRouteResult Tracer::trace(const std::string& destination, uint16_t numOfHops, RawSocket& socket) {
+TraceRouteResult Tracer::trace(const std::string& destination, uint8_t numOfHops, RawSocket& socket, uint16_t traceID) {
     TraceRouteResult result {};
-    auto traceID = static_cast<uint16_t>(socket.m_socket & 0xFFFF);
 
     Int epollFD = epoll_create1(0);
     if (epollFD == -1) {
@@ -118,11 +121,7 @@ TraceRouteResult Tracer::trace(const std::string& destination, uint16_t numOfHop
 };
 
 
-std::vector<TraceRouteResult> Tracer::multipleTraces(const std::vector<std::string>& destinations, Int numOfHops) {
-    if (numOfHops > std::numeric_limits<uint16_t>::max()) {
-        throw InvalidTTLException(numOfHops);
-    }
-    numOfHops = static_cast<uint16_t>(numOfHops);
+std::vector<TraceRouteResult> Tracer::multipleTraces(const std::vector<std::string>& destinations, uint8_t numOfHops) {
 
     size_t numOfDestinations {destinations.size()};
     std::vector<TraceRouteResult> results {};
@@ -133,7 +132,7 @@ std::vector<TraceRouteResult> Tracer::multipleTraces(const std::vector<std::stri
 
     for (int i = 0; i < numOfDestinations; ++i) {
 
-        results[i] = Tracer::trace(destinations[i], numOfHops, socket);
+        results[i] = Tracer::trace(destinations[i], numOfHops, socket, i);
         if (results[i].getPath().empty()) {
             std::cout << "No path found to " << destinations[i] << '\n';
         } else {

@@ -68,12 +68,13 @@ void mappingLogic(int argc, char *argv[], bool testing = false) {
 
 
 void tracingLogic(int argc, char *argv[], bool testing = false) {
+    if (argc < 3) {
+        throw WrongTracerFormatException();
+    }
     uint8_t maxHops {DEFAULT_MAX_HOP};
     Int ipsIndex {2};
     std::string afterFirstFlag {argv[2]};
-    if (argc < 3) {
-        throw WrongTracerFormatException();
-    } else if(afterFirstFlag == "-c" || afterFirstFlag == "--count") {
+    if(afterFirstFlag == "-c" || afterFirstFlag == "--count") {
         if (argc < 4 ) {
             throw WrongTracerCountFormatException();
         } else {

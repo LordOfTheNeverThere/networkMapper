@@ -44,9 +44,22 @@ sudo cmake --install .
 #cmake --install .
 ```
 
-## Using it
-*TODO*
+## ✅ Using it
+### Help Section:
+```bash
+Usage: /.../bin/networkMapper { -m | -t | -h } [ARGUMENTS...]
 
+Options:
+  -m, --map <IP> <NET>              Map an IPv4 address to a network address.
+  -t, --trace [-c, --count COUNT] <IP>... 
+                                    Perform a traceroute. COUNT sets max hops.
+  -h, --help                        Display this help and exit.
+```
+### Examples:
+
+* ```networkMapper -m 127.0.0.0 255.255.255.0```
+* ```networkMapper -t 8.8.8.8 1.1.1.1 127.0.0.1```
+* ```networkMapper -t -c 3 8.8.8.8 1.1.1.1 127.0.0.1```
 
 ## 📄 License
 

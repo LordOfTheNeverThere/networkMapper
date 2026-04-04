@@ -34,6 +34,9 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 # Option B: Local Configuration (Uncomment to install to a specific folder)
 # cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/MyApps/networkMapper"
 
+# Build:
+cmake --build .
+
 # Install for Option A:
 sudo cmake --install .
 

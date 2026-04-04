@@ -50,13 +50,13 @@ target_include_directories(networkMapperLib
 )
 
 # Main Application Executable
-add_executable(networkMapperDev src/main.cpp)
-target_link_libraries(networkMapperDev PUBLIC networkMapperLib)
+add_executable(networkMapper src/main.cpp)
+target_link_libraries(networkMapper PUBLIC networkMapperLib)
 
 # --- INSTALLATION LOGIC ---
 
 # Install the app binary
-install(TARGETS networkMapperDev RUNTIME DESTINATION bin)
+install(TARGETS networkMapper RUNTIME DESTINATION bin)
 
 # Install the static library (optional, only if you plan on using networkMapper as Library)
 #install(TARGETS networkMapperLib ARCHIVE DESTINATION lib)

@@ -9,6 +9,7 @@ Before building the project, ensure you have the following installed:
 * **CMake** (v3.28 or higher)
 * **C++ Compiler** (supporting C++17)
 * **Git**
+* Compatible with Linux only (Due the usage of epoll system call for socket event triggering architecture)
 
 ---
 

@@ -1,6 +1,6 @@
 # networkMapper
 
-A high-performance network mapping and diagnostic tool built in C++17. This project utilizes the `socks` library (https://github.com/LordOfTheNeverThere/socks) for low-level packet manipulation and provides detailed insights into network topology. With a LAN and WAN mapping capabilities using ARP and PING, respectively. As well as tracerouting capabilities using an incremental TTL field on the IP Header.
+A multi-threaded network mapping and diagnostic tool built in C++17. This project utilizes the `socks` library (https://github.com/LordOfTheNeverThere/socks) for low-level packet manipulation and provides detailed insights into network topology. With a LAN and WAN mapping capabilities using ARP and PING, respectively. As well as tracerouting capabilities using an incremental TTL field on the IP Header.
 
 ## 🗺️️ Prerequisites
 
